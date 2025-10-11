@@ -1,0 +1,22 @@
+[debug] [2025-10-11T06:55:50.523Z] ----------------------------------------------------------------------
+[debug] [2025-10-11T06:55:50.527Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\R c\AppData\Local\npm-cache\_npx\ba4f1959e38407b5\node_modules\firebase-tools\lib\bin\firebase.js projects:addfirebase opsyn-zohha-2025
+[debug] [2025-10-11T06:55:50.527Z] CLI Version:   14.19.1
+[debug] [2025-10-11T06:55:50.527Z] Platform:      win32
+[debug] [2025-10-11T06:55:50.528Z] Node Version:  v22.20.0
+[debug] [2025-10-11T06:55:50.528Z] Time:          Sat Oct 11 2025 11:55:50 GMT+0500 (Pakistan Standard Time)
+[debug] [2025-10-11T06:55:50.528Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-10-11T06:55:50.536Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-10-11T06:55:50.536Z] > authorizing via signed-in user (ghalibabdullah25@gmail.com)
+[debug] [2025-10-11T06:55:50.542Z] Checked if tokens are valid: true, expires at: 1760169258193
+[debug] [2025-10-11T06:55:50.542Z] Checked if tokens are valid: true, expires at: 1760169258193
+[debug] [2025-10-11T06:55:50.543Z] >>> [apiv2][query] POST https://firebase.googleapis.com/v1beta1/projects/opsyn-zohha-2025:addFirebase [none]
+[debug] [2025-10-11T06:55:51.326Z] <<< [apiv2][status] POST https://firebase.googleapis.com/v1beta1/projects/opsyn-zohha-2025:addFirebase 403
+[debug] [2025-10-11T06:55:51.326Z] <<< [apiv2][body] POST https://firebase.googleapis.com/v1beta1/projects/opsyn-zohha-2025:addFirebase {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2025-10-11T06:55:51.327Z] Request to https://firebase.googleapis.com/v1beta1/projects/opsyn-zohha-2025:addFirebase had HTTP Error: 403, The caller does not have permission
+[debug] [2025-10-11T06:55:51.791Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/opsyn-zohha-2025:addFirebase had HTTP Error: 403, The caller does not have permission
+    at responseToError (C:\Users\R c\AppData\Local\npm-cache\_npx\ba4f1959e38407b5\node_modules\firebase-tools\lib\responseToError.js:52:12)
+    at RetryOperation._fn (C:\Users\R c\AppData\Local\npm-cache\_npx\ba4f1959e38407b5\node_modules\firebase-tools\lib\apiv2.js:312:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: Failed to add Firebase to Google Cloud Platform project. See firebase-debug.log for more info.
