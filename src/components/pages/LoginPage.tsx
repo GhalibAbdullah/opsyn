@@ -1,4 +1,3 @@
-// src/pages/LoginPage.tsx
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -7,29 +6,19 @@ import { ArrowLeft, Mail, Lock, Sparkles } from 'lucide-react';
 import opsynLogo from 'figma:asset/c0beb7938dec93ac35f48599799e2f4c1c8641af.png';
 
 // Firebase
-import { auth } from '../lib/firebase';
+import { auth } from '../../lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
-// Router
-import { useLocation, useNavigate, Link } from 'react-router-dom';
+interface LoginPageProps {
+  onBack: () => void;
+  onLoginSuccess: () => void;
+}
 
-export default function LoginPage() {
-  const nav = useNavigate();
-  const location = useLocation();
-
-  // support both ?next=/foo and location.state?.from
-  const search = new URLSearchParams(location.search);
-  const nextFromQuery = search.get('next');
-  const nextFromState =
-    (location.state as any)?.from?.pathname ||
-    (location.state as any)?.from ||
-    null;
-  const next = nextFromQuery || nextFromState || '/';
-
+export default function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
 
   function friendlyError(e: any) {
@@ -49,7 +38,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      nav(next, { replace: true });
+      onLoginSuccess(); // hand control back to App.tsx
     } catch (e: any) {
       setErr(friendlyError(e));
     } finally {
@@ -82,14 +71,13 @@ export default function LoginPage() {
               <p className="text-xl" style={{ color: '#A1A1A5' }}>AI-Powered Workflow Automation</p>
             </div>
           </div>
-
           <div className="space-y-6">
             <div className="flex items-start space-x-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#1D0210' }}>
                 <Sparkles className="h-4 w-4" style={{ color: '#FFFFFF' }} />
               </div>
               <div className="text-left">
-                <h3 className="font-medium" style={{ color: '#EAEAEA' }}>Effortless Login</h3>
+                <h3 className="font-medium" style={{ color: '#EAEAEA' }}>Secure Sign-in</h3>
                 <p className="text-sm mt-1" style={{ color: '#A1A1A5' }}>Access your workspace securely in seconds</p>
               </div>
             </div>
@@ -100,10 +88,9 @@ export default function LoginPage() {
       {/* Right panel – login form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center px-6 lg:px-12 relative z-10">
         <div className="w-full max-w-md">
-          {/* Back to previous page */}
           <Button
             variant="ghost"
-            onClick={() => nav(-1)}
+            onClick={onBack}
             className="mb-6 font-medium transition-all duration-200 self-start"
             style={{ color: '#A1A1A5' }}
           >
@@ -179,19 +166,6 @@ export default function LoginPage() {
                   {loading ? 'Logging in…' : 'Log in'}
                 </Button>
               </form>
-
-              <div className="text-center pt-2">
-                <p className="text-sm" style={{ color: '#A1A1A5' }}>
-                  Don’t have an account?{' '}
-                  <Link
-                    to={`/signup?next=${encodeURIComponent(next)}`}
-                    className="font-medium"
-                    style={{ color: '#1D0210' }}
-                  >
-                    Create one
-                  </Link>
-                </p>
-              </div>
             </CardContent>
           </Card>
         </div>
