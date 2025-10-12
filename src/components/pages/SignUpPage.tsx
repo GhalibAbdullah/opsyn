@@ -7,7 +7,7 @@ import { ArrowLeft, Mail, Lock, User, Building, Sparkles } from 'lucide-react';
 import opsynLogo from 'figma:asset/c0beb7938dec93ac35f48599799e2f4c1c8641af.png';
 
 // 🔐 Firebase
-import { auth, db } from '../lib/firebase';
+import { auth, db } from '../../lib/firebase';
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
