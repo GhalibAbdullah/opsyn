@@ -26,7 +26,7 @@ import opsynLogo from "figma:asset/c0beb7938dec93ac35f48599799e2f4c1c8641af.png"
 
 import { MainPage } from "./components/pages/MainPage";
 import { SignUpPage } from "./components/pages/SignUpPage";
-import { LoginPage } from "./components/pages/LoginPage";
+import LoginPage from "./components/pages/LoginPage";
 import { Dashboard } from "./components/pages/Dashboard";
 import { Analytics } from "./components/pages/Analytics";
 import { Builder } from "./components/pages/Builder";
