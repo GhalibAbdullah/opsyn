@@ -8,7 +8,6 @@ import { Card, CardContent } from '../ui/card';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import opsynLogo from 'figma:asset/c0beb7938dec93ac35f48599799e2f4c1c8641af.png';
 
-// ✅ Firebase (correct path from /components/pages/*)
 import { auth } from '../../lib/firebase';
 import {
   signInWithEmailAndPassword,
@@ -21,7 +20,6 @@ type LoginDoneCb = () => void;
 
 interface LoginPageProps {
   onBack: () => void;
-  /** Accept either name so it works with your current App.tsx */
   onLoginSuccess?: LoginDoneCb;
   onLoginComplete?: LoginDoneCb;
 }
@@ -99,9 +97,9 @@ export default function LoginPage({
       className="min-h-screen flex items-center justify-center relative overflow-hidden"
       style={{ backgroundColor: '#0E0E10' }}
     >
-      {/* Background */}
+      {/* Background (no pointer events) */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background:
             'linear-gradient(165deg, #070500 0%, #05060A 25%, #050A15 45%, #1B0E1E 70%, #1d0210 100%)',
@@ -131,26 +129,34 @@ export default function LoginPage({
         />
       </div>
 
-      {/* Back */}
-      <motion.button
-        onClick={onBack}
-        className="absolute top-8 left-8 flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors z-20"
-        style={{ color: '#A1A1A5' }}
-        whileHover={{ scale: 1.05, x: -2 }}
-        whileTap={{ scale: 0.95 }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = '#EAEAEA')}
-        onMouseLeave={(e) => (e.currentTarget.style.color = '#A1A1A5')}
+      {/* Top bar with Back (fixed at the very top) */}
+      <header
+        className="fixed top-0 left-0 right-0 z-30 px-6 py-4 flex items-center"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0))',
+        }}
       >
-        <ArrowLeft className="h-5 w-5" />
-        <span className="font-medium">Back</span>
-      </motion.button>
+        <motion.button
+          onClick={onBack}
+          className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors"
+          style={{ color: '#A1A1A5' }}
+          whileHover={{ scale: 1.05, x: -2 }}
+          whileTap={{ scale: 0.95 }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#EAEAEA')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#A1A1A5')}
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span className="font-medium">Back</span>
+        </motion.button>
+      </header>
 
       {/* Card */}
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-        className="relative z-10 w-full max-w-md px-6"
+        className="relative z-10 w-full max-w-md px-6 pt-24" // pt-24 to clear the fixed header
       >
         <Card
           className="backdrop-blur-sm border shadow-2xl rounded-2xl overflow-hidden"
@@ -205,7 +211,7 @@ export default function LoginPage({
                   Email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#6D6D70' }} />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5" style={{ color: '#6D6D70' }} />
                   <Input
                     id="email"
                     type="email"
@@ -235,7 +241,6 @@ export default function LoginPage({
                   <Label htmlFor="password" style={{ color: '#EAEAEA' }}>
                     Password
                   </Label>
-                  {/* Link can later trigger a reset flow */}
                   <button
                     type="button"
                     className="text-sm transition-colors"
@@ -246,15 +251,18 @@ export default function LoginPage({
                     Forgot password?
                   </button>
                 </div>
+
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: '#6D6D70' }} />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5" style={{ color: '#6D6D70' }} />
+
+                  {/* pr-12 to make space for the right-aligned toggle */}
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 border"
+                    className="pl-10 pr-12 border"
                     style={{
                       backgroundColor: '#0E0E10',
                       borderColor: 'rgba(161, 161, 165, 0.3)',
@@ -264,10 +272,13 @@ export default function LoginPage({
                     onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(161, 161, 165, 0.3)')}
                     required
                   />
+
+                  {/* Right-aligned toggle, vertically centered */}
                   <button
                     type="button"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 transition-colors"
+                    className="absolute inset-y-0 right-3 flex items-center"
                     style={{ color: '#6D6D70' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#A1A1A5')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#6D6D70')}
@@ -277,7 +288,11 @@ export default function LoginPage({
                 </div>
               </motion.div>
 
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.4 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.4 }}
+              >
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -299,7 +314,12 @@ export default function LoginPage({
             </form>
 
             {/* Divider */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.4 }} className="relative my-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.4 }}
+              className="relative my-6"
+            >
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t" style={{ borderColor: 'rgba(161, 161, 165, 0.2)' }} />
               </div>
@@ -311,7 +331,12 @@ export default function LoginPage({
             </motion.div>
 
             {/* Social logins */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.4 }} className="grid grid-cols-2 gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.4 }}
+              className="grid grid-cols-2 gap-4"
+            >
               <Button
                 type="button"
                 variant="outline"
