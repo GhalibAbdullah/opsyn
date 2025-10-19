@@ -252,33 +252,38 @@ export default function LoginPage({
                   </button>
                 </div>
 
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5" style={{ color: '#6D6D70' }} />
-
-                  {/* pr-12 to make space for the right-aligned toggle */}
+                {/* Password field (no overlap, flex layout) */}
+                <div
+                  className="rounded-md border px-3 flex items-center"
+                  style={{ backgroundColor: '#0E0E10', borderColor: 'rgba(161, 161, 165, 0.3)' }}
+                >
+                  <Lock className="h-5 w-5 mr-2 shrink-0" style={{ color: '#6D6D70' }} />
+                
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-12 border"
-                    style={{
-                      backgroundColor: '#0E0E10',
-                      borderColor: 'rgba(161, 161, 165, 0.3)',
-                      color: '#EAEAEA',
+                    // let the wrapper own the border; make the input transparent
+                    className="flex-1 bg-transparent border-0 px-0 focus-visible:outline-none focus-visible:ring-0"
+                    style={{ color: '#EAEAEA' }}
+                    onFocus={(e) => {
+                      const box = e.currentTarget.parentElement as HTMLElement;
+                      if (box) box.style.borderColor = 'rgba(155, 74, 74, 0.6)';
                     }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(155, 74, 74, 0.6)')}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(161, 161, 165, 0.3)')}
+                    onBlur={(e) => {
+                      const box = e.currentTarget.parentElement as HTMLElement;
+                      if (box) box.style.borderColor = 'rgba(161, 161, 165, 0.3)';
+                    }}
                     required
                   />
-
-                  {/* Right-aligned toggle, vertically centered */}
+                
                   <button
                     type="button"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-3 flex items-center"
+                    className="ml-2 p-1 rounded-md"
                     style={{ color: '#6D6D70' }}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#A1A1A5')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#6D6D70')}
@@ -286,6 +291,7 @@ export default function LoginPage({
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+
               </motion.div>
 
               <motion.div
