@@ -163,11 +163,10 @@ export default function App() {
             <LoginPage
               onBack={handleBackToMain}
               onLoginComplete={handleLoginComplete}
-              onForgotPassword={(typedEmail)} => {
+              onForgotPassword={(typedEmail) => {
                 setPrefillEmail(typedEmail || "");
-                navigateToPage("reset-password");}}
-              // ⬅️ pass the callback so the login page can redirect to reset
-             
+                navigateToPage("reset-password");
+              }}
             />
           </motion.div>
         );
