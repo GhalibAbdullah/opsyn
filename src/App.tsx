@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./components/ui/button";
@@ -25,22 +24,104 @@ import {
 } from "lucide-react";
 import opsynLogo from "figma:asset/c0beb7938dec93ac35f48599799e2f4c1c8641af.png";
 
-import { MainPage } from "./components/pages/MainPage";
-import { SignUpPage } from "./components/pages/SignUpPage";
-// IMPORTANT: lazy-load auth-related pages so they don’t crash initial load
-const LoginPage = React.lazy(() => import("./components/pages/LoginPage"));
-const ResetPasswordPage = React.lazy(
-  () => import("./components/pages/ResetPasswordPage")
+/* ---------------- Error Boundary ---------------- */
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: any }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { error };
+  }
+  componentDidCatch(error: any, info: any) {
+    // eslint-disable-next-line no-console
+    console.error("App crashed:", error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "#0E0E10",
+            color: "#EAEAEA",
+            padding: 24,
+            fontFamily: "ui-sans-serif, system-ui",
+          }}
+        >
+          <h1 style={{ fontSize: 20, marginBottom: 8 }}>Something went wrong.</h1>
+          <pre
+            style={{
+              whiteSpace: "pre-wrap",
+              background: "#141419",
+              border: "1px solid rgba(161,161,165,.4)",
+              borderRadius: 12,
+              padding: 12,
+              color: "#ff9",
+              overflowX: "auto",
+            }}
+          >
+            {String(this.state.error?.message || this.state.error)}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* --------- Safe lazy helpers (support named or default) --------- */
+const lazyDefault = <T extends any>(loader: () => Promise<{ default: T }>) =>
+  React.lazy(loader);
+
+// try default export; if absent, map a named export to default
+const lazyEither = <T extends any>(
+  loader: () => Promise<any>,
+  named?: string
+) =>
+  React.lazy(async () => {
+    const mod = await loader();
+    if (mod?.default) return { default: mod.default as T };
+    if (named && mod[named]) return { default: mod[named] as T };
+    throw new Error(
+      `Failed to load module: neither default nor named export "${named}" found.`
+    );
+  });
+
+/* --------- Pages (SAFE lazy imports) --------- */
+// These match your previous imports where some were named exports:
+const MainPage = lazyEither(() => import("./components/pages/MainPage"), "MainPage");
+const SignUpPage = lazyEither(() => import("./components/pages/SignUpPage"), "SignUpPage");
+const LoginPage = lazyEither(() => import("./components/pages/LoginPage"), "default");
+const ResetPasswordPage = lazyEither(
+  () => import("./components/pages/ResetPasswordPage"),
+  "default"
 );
 
-import { Dashboard } from "./components/pages/Dashboard";
-import { Analytics } from "./components/pages/Analytics";
-import { Builder } from "./components/pages/Builder";
-import { WorkflowsPage } from "./components/pages/WorkflowsPage";
-import { Collaborate } from "./components/pages/Collaborate";
-import { Integrations } from "./components/pages/Integrations";
-import { SettingsPage } from "./components/pages/SettingsPage";
+const Dashboard = lazyEither(() => import("./components/pages/Dashboard"), "Dashboard");
+const Analytics = lazyEither(() => import("./components/pages/Analytics"), "Analytics");
+const Builder = lazyEither(() => import("./components/pages/Builder"), "Builder");
+const WorkflowsPage = lazyEither(
+  () => import("./components/pages/WorkflowsPage"),
+  "WorkflowsPage"
+);
+const Collaborate = lazyEither(
+  () => import("./components/pages/Collaborate"),
+  "Collaborate"
+);
+const Integrations = lazyEither(
+  () => import("./components/pages/Integrations"),
+  "Integrations"
+);
+const SettingsPage = lazyEither(
+  () => import("./components/pages/SettingsPage"),
+  "SettingsPage"
+);
 
+/* ------------------- App ------------------- */
 export default function App() {
   type Page =
     | "main"
@@ -57,17 +138,14 @@ export default function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>("main");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // used to prefill the Reset Password form
   const [prefillEmail, setPrefillEmail] = useState("");
 
-  // -------- transitions --------
+  // Transitions
   const pageTransitions = {
     initial: { opacity: 0, scale: 0.95, y: 20 },
     animate: { opacity: 1, scale: 1, y: 0 },
     exit: { opacity: 0, scale: 1.05, y: -20 },
   };
-
   const smartAnimateTransitions: Record<string, any> = {
     main: { initial: { opacity: 0, x: -100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 100 } },
     signup: { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
@@ -75,10 +153,7 @@ export default function App() {
     "reset-password": { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
   };
 
-  const navigateToPage = (newPage: Page) => {
-    if (newPage === currentPage) return;
-    setCurrentPage(newPage);
-  };
+  const navigateToPage = (p: Page) => setCurrentPage(p);
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -90,6 +165,7 @@ export default function App() {
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
 
+  // Global states you already had
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [errorAnalysisOpen, setErrorAnalysisOpen] = useState(false);
   const [integrationModalOpen, setIntegrationModalOpen] = useState(false);
@@ -107,79 +183,75 @@ export default function App() {
   const handleBackToMain = () => navigateToPage("main");
   const handleLogout = () => navigateToPage("main");
 
-  // called by LoginPage when user clicks "Forgot password?"
   const handleForgotPassword = (emailFromLogin: string) => {
     setPrefillEmail(emailFromLogin || "");
     navigateToPage("reset-password");
   };
 
+  const pageProps = {
+    shareModalOpen,
+    setShareModalOpen,
+    errorAnalysisOpen,
+    setErrorAnalysisOpen,
+    integrationModalOpen,
+    setIntegrationModalOpen,
+    selectedIntegration,
+    setSelectedIntegration,
+    workflowFilter,
+    setWorkflowFilter,
+    integrationFilter,
+    setIntegrationFilter,
+    integrationSearch,
+    setIntegrationSearch,
+    errorFilter,
+    setErrorFilter,
+  };
+
+  const getTransition = (page: Page) =>
+    page === "main" || page === "signup" || page === "login" || page === "reset-password"
+      ? smartAnimateTransitions[page] || pageTransitions
+      : pageTransitions;
+
+  const Fallback = (
+    <div style={{ color: "#EAEAEA", padding: 16, fontFamily: "ui-sans-serif, system-ui" }}>
+      Loading…
+    </div>
+  );
+
   const renderCurrentPage = () => {
-    const pageProps = {
-      shareModalOpen,
-      setShareModalOpen,
-      errorAnalysisOpen,
-      setErrorAnalysisOpen,
-      integrationModalOpen,
-      setIntegrationModalOpen,
-      selectedIntegration,
-      setSelectedIntegration,
-      workflowFilter,
-      setWorkflowFilter,
-      integrationFilter,
-      setIntegrationFilter,
-      integrationSearch,
-      setIntegrationSearch,
-      errorFilter,
-      setErrorFilter,
-    };
-
-    const getTransition = (page: Page) =>
-      page === "main" || page === "signup" || page === "login" || page === "reset-password"
-        ? smartAnimateTransitions[page] || pageTransitions
-        : pageTransitions;
-
     const transition = getTransition(currentPage);
-
     switch (currentPage) {
       case "main":
         return (
-          <motion.div
-            key="main"
-            initial={transition.initial}
-            animate={transition.animate}
-            exit={transition.exit}
+          <motion.div key="main" initial={transition.initial} animate={transition.animate} exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
-            <MainPage onLogin={handleLogin} onSignUp={handleSignUp} />
+            <Suspense fallback={Fallback}>
+              <MainPage onLogin={handleLogin} onSignUp={handleSignUp} />
+            </Suspense>
           </motion.div>
         );
 
       case "signup":
         return (
-          <motion.div
-            key="signup"
-            initial={transition.initial}
-            animate={transition.animate}
-            exit={transition.exit}
+          <motion.div key="signup" initial={transition.initial} animate={transition.animate} exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
-            <SignUpPage onBack={handleBackToMain} onSignUpComplete={handleSignUpComplete} />
+            <Suspense fallback={Fallback}>
+              <SignUpPage onBack={handleBackToMain} onSignUpComplete={handleSignUpComplete} />
+            </Suspense>
           </motion.div>
         );
 
       case "login":
         return (
-          <motion.div
-            key="login"
-            initial={transition.initial}
-            animate={transition.animate}
-            exit={transition.exit}
+          <motion.div key="login" initial={transition.initial} animate={transition.animate} exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
-            <Suspense fallback={<div style={{ color: "#EAEAEA", padding: 16 }}>Loading…</div>}>
+            <Suspense fallback={Fallback}>
               <LoginPage
                 onBack={handleBackToMain}
                 onLoginComplete={handleLoginComplete}
@@ -191,15 +263,11 @@ export default function App() {
 
       case "reset-password":
         return (
-          <motion.div
-            key="reset"
-            initial={transition.initial}
-            animate={transition.animate}
-            exit={transition.exit}
+          <motion.div key="reset" initial={transition.initial} animate={transition.animate} exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
-            <Suspense fallback={<div style={{ color: "#EAEAEA", padding: 16 }}>Loading…</div>}>
+            <Suspense fallback={Fallback}>
               <ResetPasswordPage
                 initialEmail={prefillEmail}
                 onBack={() => navigateToPage("login")}
@@ -211,321 +279,300 @@ export default function App() {
 
       case "dashboard":
         return (
-          <motion.div
-            key="dashboard"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
+          <motion.div key="dashboard" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <Dashboard />
+            <Suspense fallback={Fallback}>
+              <Dashboard />
+            </Suspense>
           </motion.div>
         );
 
       case "workflows":
         return (
-          <motion.div
-            key="workflows"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
+          <motion.div key="workflows" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <WorkflowsPage {...pageProps} />
+            <Suspense fallback={Fallback}>
+              <WorkflowsPage {...pageProps} />
+            </Suspense>
           </motion.div>
         );
 
       case "builder":
         return (
-          <motion.div
-            key="builder"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
+          <motion.div key="builder" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <Builder {...pageProps} />
+            <Suspense fallback={Fallback}>
+              <Builder {...pageProps} />
+            </Suspense>
           </motion.div>
         );
 
       case "collaborate":
         return (
-          <motion.div
-            key="collaborate"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
+          <motion.div key="collaborate" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <Collaborate />
+            <Suspense fallback={Fallback}>
+              <Collaborate />
+            </Suspense>
           </motion.div>
         );
 
       case "analytics":
         return (
-          <motion.div
-            key="analytics"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
+          <motion.div key="analytics" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <Analytics {...pageProps} />
+            <Suspense fallback={Fallback}>
+              <Analytics {...pageProps} />
+            </Suspense>
           </motion.div>
         );
 
       case "integrations":
         return (
-          <motion.div
-            key="integrations"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
+          <motion.div key="integrations" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <Integrations {...pageProps} />
+            <Suspense fallback={Fallback}>
+              <Integrations {...pageProps} />
+            </Suspense>
           </motion.div>
         );
 
       case "settings":
         return (
-          <motion.div
-            key="settings"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
+          <motion.div key="settings" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <SettingsPage />
-          </motion.div>
-        );
-
-      default:
-        return (
-          <motion.div
-            key="main-default"
-            initial={pageTransitions.initial}
-            animate={pageTransitions.animate}
-            exit={pageTransitions.exit}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
-          >
-            <MainPage onLogin={handleLogin} onSignUp={handleSignUp} />
+            <Suspense fallback={Fallback}>
+              <SettingsPage />
+            </Suspense>
           </motion.div>
         );
     }
   };
 
-  // full-screen layout for main-ish pages
+  // Main/splash-like pages fill the screen
   if (["main", "signup", "login", "reset-password"].includes(currentPage)) {
     return (
-      <div className="w-full h-screen overflow-auto">
-        <AnimatePresence mode="wait" initial={false}>
-          {renderCurrentPage()}
-        </AnimatePresence>
-      </div>
+      <ErrorBoundary>
+        <div className="w-full h-screen overflow-auto">
+          <AnimatePresence mode="wait" initial={false}>
+            {renderCurrentPage()}
+          </AnimatePresence>
+        </div>
+      </ErrorBoundary>
     );
   }
 
-  // dashboard layout
+  // Authenticated layout (sidebar + content)
   return (
-    <div className="h-screen flex m-0 p-0" style={{ backgroundColor: "#0E0E10" }}>
-      {/* Sidebar */}
-      <motion.div
-        className={`${sidebarCollapsed ? "w-16" : "w-64"} flex-shrink-0 m-0 p-0`}
-        style={{
-          background:
-            "linear-gradient(165deg, #070500 0%, #05060A 25%, #050A15 45%, #1B0E1E 70%, #1d0210 100%)",
-        }}
-        animate={{ width: sidebarCollapsed ? 64 : 256 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-      >
-        <div className="h-full flex flex-col m-0 p-0">
-          {/* Logo */}
-          <div className="px-4 py-6 border-b border-white/10" style={{ margin: 0, padding: "1.5rem 1rem" }}>
-            <div className="flex items-center">
-              <motion.img
-                src={opsynLogo}
-                alt="OPSYN"
-                className="h-8 w-auto"
-                layoutId="opsyn-logo"
-                transition={{ duration: 0.4, ease: "easeInOut" }}
-              />
-              {!sidebarCollapsed && (
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="ml-2 font-semibold"
-                  style={{ color: "#EAEAEA" }}
-                >
-                  OPSYN
-                </motion.span>
-              )}
-            </div>
-          </div>
-
-          {/* Nav */}
-          <nav className="flex-1 px-4 py-4">
-            <div className="space-y-2">
-              {menuItems.map((item, index) => {
-                const Icon = item.icon;
-                const isActive = currentPage === (item.id as Page);
-                return (
-                  <motion.button
-                    key={item.id}
-                    onClick={() => navigateToPage(item.id as Page)}
-                    className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
-                      isActive ? "text-white" : "hover:bg-white/10 hover:text-white"
-                    }`}
-                    style={{
-                      backgroundColor: isActive ? "#1D0210" : "transparent",
-                      color: isActive ? "#EAEAEA" : "#A1A1A5",
-                    }}
-                    whileHover={{ scale: 1.02, x: 2 }}
-                    whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      delay: index * 0.05,
-                      duration: 0.3,
-                      hover: { duration: 0.2 },
-                      tap: { duration: 0.1 },
-                    }}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {!sidebarCollapsed && (
-                      <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className="ml-3"
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </nav>
-
-          {/* Logout */}
-          <div className="px-4 py-4 border-t border-white/10">
-            <motion.button
-              onClick={handleLogout}
-              className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-              style={{ color: "#A1A1A5" }}
-              whileHover={{ scale: 1.02, x: 2 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ hover: { duration: 0.2 }, tap: { duration: 0.1 } }}
-            >
-              <LogOut className="h-5 w-5" />
-              {!sidebarCollapsed && (
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="ml-3"
-                >
-                  Logout
-                </motion.span>
-              )}
-            </motion.button>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden m-0 p-0">
-        {/* Top Bar */}
-        <div
-          className="border-b"
+    <ErrorBoundary>
+      <div className="h-screen flex m-0 p-0" style={{ backgroundColor: "#0E0E10" }}>
+        {/* Sidebar */}
+        <motion.div
+          className={`${sidebarCollapsed ? "w-16" : "w-64"} flex-shrink-0 m-0 p-0`}
           style={{
-            backgroundColor: "#000000",
-            borderColor: "rgba(255, 255, 255, 0.1)",
-            margin: 0,
-            padding: "1.5rem 1.5rem",
+            background:
+              "linear-gradient(165deg, #070500 0%, #05060A 25%, #050A15 45%, #1B0E1E 70%, #1d0210 100%)",
           }}
+          animate={{ width: sidebarCollapsed ? 64 : 256 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  style={{ color: "#A1A1A5" }}
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </motion.div>
-
-              {/* Search */}
-              <motion.div
-                className="relative"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.3 }}
-              >
-                <Search
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
-                  style={{ color: "#6D6D70" }}
+          <div className="h-full flex flex-col m-0 p-0">
+            {/* Logo */}
+            <div className="px-4 py-6 border-b border-white/10" style={{ margin: 0, padding: "1.5rem 1rem" }}>
+              <div className="flex items-center">
+                <motion.img
+                  src={opsynLogo}
+                  alt="OPSYN"
+                  className="h-8 w-auto"
+                  layoutId="opsyn-logo"
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
                 />
-                <Input
-                  placeholder="Search workflows, integrations..."
-                  className="pl-10 w-80 border-0"
-                  style={{ backgroundColor: "#0E0E10", color: "#EAEAEA" }}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </motion.div>
+                {!sidebarCollapsed && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="ml-2 font-semibold"
+                    style={{ color: "#EAEAEA" }}
+                  >
+                    OPSYN
+                  </motion.span>
+                )}
+              </div>
             </div>
 
-            {/* User */}
-            <div className="flex items-center space-x-4">
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="sm" style={{ color: "#A1A1A5" }}>
-                  <Bell className="h-5 w-5" />
-                </Button>
-              </motion.div>
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="sm" style={{ color: "#A1A1A5" }}>
-                  <HelpCircle className="h-5 w-5" />
-                </Button>
-              </motion.div>
-              <motion.div
-                className="flex items-center space-x-2 cursor-pointer"
-                whileHover={{ scale: 1.02 }}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
+            {/* Nav */}
+            <nav className="flex-1 px-4 py-4">
+              <div className="space-y-2">
+                {menuItems.map((item, index) => {
+                  const Icon = item.icon;
+                  const isActive = currentPage === (item.id as Page);
+                  return (
+                    <motion.button
+                      key={item.id}
+                      onClick={() => navigateToPage(item.id as Page)}
+                      className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
+                        isActive ? "text-white" : "hover:bg-white/10 hover:text-white"
+                      }`}
+                      style={{
+                        backgroundColor: isActive ? "#1D0210" : "transparent",
+                        color: isActive ? "#EAEAEA" : "#A1A1A5",
+                      }}
+                      whileHover={{ scale: 1.02, x: 2 }}
+                      whileTap={{ scale: 0.98 }}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{
+                        delay: index * 0.05,
+                        duration: 0.3,
+                        hover: { duration: 0.2 },
+                        tap: { duration: 0.1 },
+                      }}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {!sidebarCollapsed && (
+                        <motion.span
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="ml-3"
+                        >
+                          {item.label}
+                        </motion.span>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </nav>
+
+            {/* Logout */}
+            <div className="px-4 py-4 border-t border-white/10">
+              <motion.button
+                onClick={() => navigateToPage("main")}
+                className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+                style={{ color: "#A1A1A5" }}
+                whileHover={{ scale: 1.02, x: 2 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ hover: { duration: 0.2 }, tap: { duration: 0.1 } }}
               >
-                <Avatar>
-                  <AvatarImage src="/placeholder-avatar.jpg" />
-                  <AvatarFallback>SC</AvatarFallback>
-                </Avatar>
-                <div className="hidden md:block">
-                  <div className="text-sm font-medium" style={{ color: "#EAEAEA" }}>
-                    Sarah Chen
-                  </div>
-                  <div className="text-xs" style={{ color: "#6D6D70" }}>
-                    Admin
-                  </div>
-                </div>
-                <ChevronDown className="h-4 w-4" style={{ color: "#6D6D70" }} />
-              </motion.div>
+                <LogOut className="h-5 w-5" />
+                {!sidebarCollapsed && (
+                  <motion.span
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="ml-3"
+                  >
+                    Logout
+                  </motion.span>
+                )}
+              </motion.button>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6" style={{ backgroundColor: "#000000" }}>
-          <AnimatePresence mode="wait">{renderCurrentPage()}</AnimatePresence>
-        </main>
+        {/* Main */}
+        <div className="flex-1 flex flex-col overflow-hidden m-0 p-0">
+          {/* Top bar */}
+          <div
+            className="border-b"
+            style={{
+              backgroundColor: "#000000",
+              borderColor: "rgba(255, 255, 255, 0.1)",
+              margin: 0,
+              padding: "1.5rem 1.5rem",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    style={{ color: "#A1A1A5" }}
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </motion.div>
+
+                {/* Search */}
+                <motion.div
+                  className="relative"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                >
+                  <Search
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
+                    style={{ color: "#6D6D70" }}
+                  />
+                  <Input
+                    placeholder="Search workflows, integrations..."
+                    className="pl-10 w-80 border-0"
+                    style={{ backgroundColor: "#0E0E10", color: "#EAEAEA" }}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </motion.div>
+              </div>
+
+              {/* User */}
+              <div className="flex items-center space-x-4">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button variant="ghost" size="sm" style={{ color: "#A1A1A5" }}>
+                    <Bell className="h-5 w-5" />
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button variant="ghost" size="sm" style={{ color: "#A1A1A5" }}>
+                    <HelpCircle className="h-5 w-5" />
+                  </Button>
+                </motion.div>
+                <motion.div
+                  className="flex items-center space-x-2 cursor-pointer"
+                  whileHover={{ scale: 1.02 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
+                >
+                  <Avatar>
+                    <AvatarImage src="/placeholder-avatar.jpg" />
+                    <AvatarFallback>SC</AvatarFallback>
+                  </Avatar>
+                  <div className="hidden md:block">
+                    <div className="text-sm font-medium" style={{ color: "#EAEAEA" }}>
+                      Sarah Chen
+                    </div>
+                    <div className="text-xs" style={{ color: "#6D6D70" }}>
+                      Admin
+                    </div>
+                  </div>
+                  <ChevronDown className="h-4 w-4" style={{ color: "#6D6D70" }} />
+                </motion.div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <main className="flex-1 overflow-auto p-6" style={{ backgroundColor: "#000000" }}>
+            <AnimatePresence mode="wait" initial={false}>
+              {renderCurrentPage()}
+            </AnimatePresence>
+          </main>
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }
