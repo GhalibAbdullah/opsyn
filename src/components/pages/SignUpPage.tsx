@@ -387,7 +387,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
                     checked={formData.agreeToTerms}
                     onCheckedChange={(checked) => handleInputChange('agreeToTerms', checked as boolean)}
                     className="mt-1"
-                    style={{ borderColor: 'rgba(29, 2, 16, 0.5)' }}
+                    style={{ borderColor: '#008080' }}
                   />
                   <label
                     htmlFor="terms"
@@ -426,9 +426,9 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
                     variant="ghost"
                     onClick={onBack}
                     className="hover:bg-transparent p-0 h-auto font-medium transition-colors"
-                    style={{ color: '#1D0210' }}
+                    style={{ color: '#008080' }}
                     onMouseEnter={(e: any) => e.target.style.color = 'rgba(29, 2, 16, 0.8)'}
-                    onMouseLeave={(e: any) => e.target.style.color = '#1D0210'}
+                    onMouseLeave={(e: any) => e.target.style.color = '#008080'}
                   >
                     Login here
                   </Button>
