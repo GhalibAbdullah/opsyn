@@ -23,12 +23,15 @@ interface LoginPageProps {
   onBack: () => void;
   onLoginSuccess?: LoginDoneCb;
   onLoginComplete?: LoginDoneCb;
+  onForgotPassword?: (email: string) => void;
+  
 }
 
 export default function LoginPage({
   onBack,
   onLoginSuccess,
   onLoginComplete,
+  onForgotPassword,
 }: LoginPageProps) {
   const onDone: LoginDoneCb = onLoginSuccess ?? onLoginComplete ?? (() => {});
   const navigate = useNavigate();
@@ -265,7 +268,7 @@ export default function LoginPage({
                     type="button"
                     className="text-sm transition-colors underline underline-offset-4"
                     style={{ color: '#9B4A4A' }}
-                    onClick={goToForgot}
+                    onClick={() => onForgotPassword?.(email)}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#EAEAEA')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#9B4A4A')}
                   >
