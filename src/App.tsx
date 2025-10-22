@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// src/App.tsx
+import React, { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -26,7 +27,12 @@ import opsynLogo from "figma:asset/c0beb7938dec93ac35f48599799e2f4c1c8641af.png"
 
 import { MainPage } from "./components/pages/MainPage";
 import { SignUpPage } from "./components/pages/SignUpPage";
-import LoginPage from "./components/pages/LoginPage";
+// IMPORTANT: lazy-load auth-related pages so they don’t crash initial load
+const LoginPage = React.lazy(() => import("./components/pages/LoginPage"));
+const ResetPasswordPage = React.lazy(
+  () => import("./components/pages/ResetPasswordPage")
+);
+
 import { Dashboard } from "./components/pages/Dashboard";
 import { Analytics } from "./components/pages/Analytics";
 import { Builder } from "./components/pages/Builder";
@@ -35,58 +41,43 @@ import { Collaborate } from "./components/pages/Collaborate";
 import { Integrations } from "./components/pages/Integrations";
 import { SettingsPage } from "./components/pages/SettingsPage";
 
-// ⬅️ NEW: import your reset page (props described below)
-import ResetPasswordPage from "./components/pages/ResetPasswordPage";
-
 export default function App() {
-  // Start with main page instead of dashboard
-  const [currentPage, setCurrentPage] = useState<
-    | "main" | "signup" | "login" | "reset-password"
-    | "dashboard" | "workflows" | "builder" | "collaborate"
-    | "analytics" | "integrations" | "settings"
-  >("main");
-  const [previousPage, setPreviousPage] = useState("main");
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  type Page =
+    | "main"
+    | "signup"
+    | "login"
+    | "reset-password"
+    | "dashboard"
+    | "workflows"
+    | "builder"
+    | "collaborate"
+    | "analytics"
+    | "integrations"
+    | "settings";
+
+  const [currentPage, setCurrentPage] = useState<Page>("main");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // carry over the typed email to the reset page
+  // used to prefill the Reset Password form
   const [prefillEmail, setPrefillEmail] = useState("");
 
-  // Global modal and filter state
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [errorAnalysisOpen, setErrorAnalysisOpen] = useState(false);
-  const [integrationModalOpen, setIntegrationModalOpen] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState(null);
-  const [workflowFilter, setWorkflowFilter] = useState("all");
-  const [integrationFilter, setIntegrationFilter] = useState("all");
-  const [integrationSearch, setIntegrationSearch] = useState("");
-  const [errorFilter, setErrorFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Smart animate transition configurations
+  // -------- transitions --------
   const pageTransitions = {
     initial: { opacity: 0, scale: 0.95, y: 20 },
     animate: { opacity: 1, scale: 1, y: 0 },
-    exit: { opacity: 0, scale: 1.05, y: -20 }
+    exit: { opacity: 0, scale: 1.05, y: -20 },
   };
 
   const smartAnimateTransitions: Record<string, any> = {
-    main:   { initial: { opacity: 0, x: -100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 100 } },
-    signup: { initial: { opacity: 0, x: 100  }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
-    login:  { initial: { opacity: 0, x: 100  }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
-    // NEW: keep the same feel as login
+    main: { initial: { opacity: 0, x: -100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: 100 } },
+    signup: { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
+    login: { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
     "reset-password": { initial: { opacity: 0, x: 100 }, animate: { opacity: 1, x: 0 }, exit: { opacity: 0, x: -100 } },
   };
 
-  // Page transition function with smart animations
-  const navigateToPage = (newPage: typeof currentPage) => {
+  const navigateToPage = (newPage: Page) => {
     if (newPage === currentPage) return;
-
-    setIsTransitioning(true);
-    setPreviousPage(currentPage);
     setCurrentPage(newPage);
-
-    setTimeout(() => setIsTransitioning(false), 500);
   };
 
   const menuItems = [
@@ -99,14 +90,24 @@ export default function App() {
     { id: "settings", label: "Settings", icon: Settings },
   ] as const;
 
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [errorAnalysisOpen, setErrorAnalysisOpen] = useState(false);
+  const [integrationModalOpen, setIntegrationModalOpen] = useState(false);
+  const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
+  const [workflowFilter, setWorkflowFilter] = useState("all");
+  const [integrationFilter, setIntegrationFilter] = useState("all");
+  const [integrationSearch, setIntegrationSearch] = useState("");
+  const [errorFilter, setErrorFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
   const handleLogin = () => navigateToPage("login");
   const handleSignUp = () => navigateToPage("signup");
   const handleSignUpComplete = () => navigateToPage("dashboard");
-  const handleLoginComplete  = () => navigateToPage("dashboard");
-  const handleBackToMain     = () => navigateToPage("main");
-  const handleLogout         = () => navigateToPage("main");
+  const handleLoginComplete = () => navigateToPage("dashboard");
+  const handleBackToMain = () => navigateToPage("main");
+  const handleLogout = () => navigateToPage("main");
 
-  // ⬅️ NEW: called by LoginPage when user clicks "Forgot password?"
+  // called by LoginPage when user clicks "Forgot password?"
   const handleForgotPassword = (emailFromLogin: string) => {
     setPrefillEmail(emailFromLogin || "");
     navigateToPage("reset-password");
@@ -114,29 +115,39 @@ export default function App() {
 
   const renderCurrentPage = () => {
     const pageProps = {
-      shareModalOpen, setShareModalOpen,
-      errorAnalysisOpen, setErrorAnalysisOpen,
-      integrationModalOpen, setIntegrationModalOpen,
-      selectedIntegration, setSelectedIntegration,
-      workflowFilter, setWorkflowFilter,
-      integrationFilter, setIntegrationFilter,
-      integrationSearch, setIntegrationSearch,
-      errorFilter, setErrorFilter,
+      shareModalOpen,
+      setShareModalOpen,
+      errorAnalysisOpen,
+      setErrorAnalysisOpen,
+      integrationModalOpen,
+      setIntegrationModalOpen,
+      selectedIntegration,
+      setSelectedIntegration,
+      workflowFilter,
+      setWorkflowFilter,
+      integrationFilter,
+      setIntegrationFilter,
+      integrationSearch,
+      setIntegrationSearch,
+      errorFilter,
+      setErrorFilter,
     };
 
-    const getTransition = (page: string) => {
-      if (page === "main" || page === "signup" || page === "login" || page === "reset-password") {
-        return smartAnimateTransitions[page] || pageTransitions;
-      }
-      return pageTransitions;
-    };
+    const getTransition = (page: Page) =>
+      page === "main" || page === "signup" || page === "login" || page === "reset-password"
+        ? smartAnimateTransitions[page] || pageTransitions
+        : pageTransitions;
 
     const transition = getTransition(currentPage);
 
     switch (currentPage) {
       case "main":
         return (
-          <motion.div key="main" initial={transition.initial} animate={transition.animate} exit={transition.exit}
+          <motion.div
+            key="main"
+            initial={transition.initial}
+            animate={transition.animate}
+            exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
@@ -146,7 +157,11 @@ export default function App() {
 
       case "signup":
         return (
-          <motion.div key="signup" initial={transition.initial} animate={transition.animate} exit={transition.exit}
+          <motion.div
+            key="signup"
+            initial={transition.initial}
+            animate={transition.animate}
+            exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
@@ -156,41 +171,51 @@ export default function App() {
 
       case "login":
         return (
-          <motion.div key="login" initial={transition.initial} animate={transition.animate} exit={transition.exit}
+          <motion.div
+            key="login"
+            initial={transition.initial}
+            animate={transition.animate}
+            exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
-            <LoginPage
-              onBack={handleBackToMain}
-              onLoginComplete={handleLoginComplete}
-              onForgotPassword={(typedEmail) => {
-                setPrefillEmail(typedEmail || "");
-                navigateToPage("reset-password");
-              }}
-            />
+            <Suspense fallback={<div style={{ color: "#EAEAEA", padding: 16 }}>Loading…</div>}>
+              <LoginPage
+                onBack={handleBackToMain}
+                onLoginComplete={handleLoginComplete}
+                onForgotPassword={handleForgotPassword}
+              />
+            </Suspense>
           </motion.div>
         );
 
-      // ⬅️ NEW: Reset Password page
       case "reset-password":
         return (
-          <motion.div key="reset" initial={transition.initial} animate={transition.animate} exit={transition.exit}
+          <motion.div
+            key="reset"
+            initial={transition.initial}
+            animate={transition.animate}
+            exit={transition.exit}
             transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1], scale: { duration: 0.4 }, opacity: { duration: 0.3 } }}
             className="w-full h-full"
           >
-            <ResetPasswordPage
-              initialEmail={prefillEmail}
-              // back to login after viewing or sending
-              onBack={() => navigateToPage("login")}
-              // optional: after successful send, you can auto-return to login
-              onSent={() => navigateToPage("login")}
-            />
+            <Suspense fallback={<div style={{ color: "#EAEAEA", padding: 16 }}>Loading…</div>}>
+              <ResetPasswordPage
+                initialEmail={prefillEmail}
+                onBack={() => navigateToPage("login")}
+                onSent={() => navigateToPage("login")}
+              />
+            </Suspense>
           </motion.div>
         );
 
       case "dashboard":
         return (
-          <motion.div key="dashboard" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="dashboard"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <Dashboard />
@@ -199,7 +224,11 @@ export default function App() {
 
       case "workflows":
         return (
-          <motion.div key="workflows" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="workflows"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <WorkflowsPage {...pageProps} />
@@ -208,7 +237,11 @@ export default function App() {
 
       case "builder":
         return (
-          <motion.div key="builder" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="builder"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <Builder {...pageProps} />
@@ -217,7 +250,11 @@ export default function App() {
 
       case "collaborate":
         return (
-          <motion.div key="collaborate" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="collaborate"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <Collaborate />
@@ -226,7 +263,11 @@ export default function App() {
 
       case "analytics":
         return (
-          <motion.div key="analytics" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="analytics"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <Analytics {...pageProps} />
@@ -235,7 +276,11 @@ export default function App() {
 
       case "integrations":
         return (
-          <motion.div key="integrations" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="integrations"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <Integrations {...pageProps} />
@@ -244,7 +289,11 @@ export default function App() {
 
       case "settings":
         return (
-          <motion.div key="settings" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="settings"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <SettingsPage />
@@ -253,7 +302,11 @@ export default function App() {
 
       default:
         return (
-          <motion.div key="main-default" initial={pageTransitions.initial} animate={pageTransitions.animate} exit={pageTransitions.exit}
+          <motion.div
+            key="main-default"
+            initial={pageTransitions.initial}
+            animate={pageTransitions.animate}
+            exit={pageTransitions.exit}
             transition={{ duration: 0.4, ease: "easeInOut" }}
           >
             <MainPage onLogin={handleLogin} onSignUp={handleSignUp} />
@@ -262,8 +315,8 @@ export default function App() {
     }
   };
 
-  // Full-screen layout for main, signup, login, reset-password
-  if (currentPage === "main" || currentPage === "signup" || currentPage === "login" || currentPage === "reset-password") {
+  // full-screen layout for main-ish pages
+  if (["main", "signup", "login", "reset-password"].includes(currentPage)) {
     return (
       <div className="w-full h-screen overflow-auto">
         <AnimatePresence mode="wait" initial={false}>
@@ -273,21 +326,22 @@ export default function App() {
     );
   }
 
-  // Dashboard layout for authenticated pages
+  // dashboard layout
   return (
-    <div className="h-screen flex m-0 p-0" style={{ backgroundColor: '#0E0E10' }}>
-      {/* Left Sidebar */}
+    <div className="h-screen flex m-0 p-0" style={{ backgroundColor: "#0E0E10" }}>
+      {/* Sidebar */}
       <motion.div
         className={`${sidebarCollapsed ? "w-16" : "w-64"} flex-shrink-0 m-0 p-0`}
         style={{
-          background: 'linear-gradient(165deg, #070500 0%, #05060A 25%, #050A15 45%, #1B0E1E 70%, #1d0210 100%)'
+          background:
+            "linear-gradient(165deg, #070500 0%, #05060A 25%, #050A15 45%, #1B0E1E 70%, #1d0210 100%)",
         }}
         animate={{ width: sidebarCollapsed ? 64 : 256 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         <div className="h-full flex flex-col m-0 p-0">
           {/* Logo */}
-          <div className="px-4 py-6 border-b border-white/10" style={{ margin: 0, padding: '1.5rem 1rem' }}>
+          <div className="px-4 py-6 border-b border-white/10" style={{ margin: 0, padding: "1.5rem 1rem" }}>
             <div className="flex items-center">
               <motion.img
                 src={opsynLogo}
@@ -296,39 +350,37 @@ export default function App() {
                 layoutId="opsyn-logo"
                 transition={{ duration: 0.4, ease: "easeInOut" }}
               />
-              <AnimatePresence>
-                {!sidebarCollapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="ml-2 font-semibold"
-                    style={{ color: '#EAEAEA' }}
-                  >
-                    OPSYN
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              {!sidebarCollapsed && (
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-2 font-semibold"
+                  style={{ color: "#EAEAEA" }}
+                >
+                  OPSYN
+                </motion.span>
+              )}
             </div>
           </div>
 
-          {/* Navigation Menu */}
+          {/* Nav */}
           <nav className="flex-1 px-4 py-4">
             <div className="space-y-2">
               {menuItems.map((item, index) => {
                 const Icon = item.icon;
-                const isActive = currentPage === item.id;
+                const isActive = currentPage === (item.id as Page);
                 return (
                   <motion.button
                     key={item.id}
-                    onClick={() => navigateToPage(item.id as typeof currentPage)}
+                    onClick={() => navigateToPage(item.id as Page)}
                     className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
                       isActive ? "text-white" : "hover:bg-white/10 hover:text-white"
                     }`}
                     style={{
-                      backgroundColor: isActive ? '#1D0210' : 'transparent',
-                      color: isActive ? '#EAEAEA' : '#A1A1A5'
+                      backgroundColor: isActive ? "#1D0210" : "transparent",
+                      color: isActive ? "#EAEAEA" : "#A1A1A5",
                     }}
                     whileHover={{ scale: 1.02, x: 2 }}
                     whileTap={{ scale: 0.98 }}
@@ -338,23 +390,21 @@ export default function App() {
                       delay: index * 0.05,
                       duration: 0.3,
                       hover: { duration: 0.2 },
-                      tap: { duration: 0.1 }
+                      tap: { duration: 0.1 },
                     }}
                   >
                     <Icon className="h-5 w-5" />
-                    <AnimatePresence>
-                      {!sidebarCollapsed && (
-                        <motion.span
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className="ml-3"
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
+                    {!sidebarCollapsed && (
+                      <motion.span
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="ml-3"
+                      >
+                        {item.label}
+                      </motion.span>
+                    )}
                   </motion.button>
                 );
               })}
@@ -366,93 +416,114 @@ export default function App() {
             <motion.button
               onClick={handleLogout}
               className="w-full flex items-center px-3 py-2 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-              style={{ color: '#A1A1A5' }}
+              style={{ color: "#A1A1A5" }}
               whileHover={{ scale: 1.02, x: 2 }}
               whileTap={{ scale: 0.98 }}
               transition={{ hover: { duration: 0.2 }, tap: { duration: 0.1 } }}
             >
               <LogOut className="h-5 w-5" />
-              <AnimatePresence>
-                {!sidebarCollapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="ml-3"
-                  >
-                    Logout
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              {!sidebarCollapsed && (
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="ml-3"
+                >
+                  Logout
+                </motion.span>
+              )}
             </motion.button>
           </div>
         </div>
       </motion.div>
 
-      {/* Main Content */}
+      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden m-0 p-0">
         {/* Top Bar */}
-        <div className="border-b" style={{
-          backgroundColor: '#000000',
-          borderColor: 'rgba(255, 255, 255, 0.1)',
-          margin: 0, padding: '1.5rem 1.5rem'
-        }}>
+        <div
+          className="border-b"
+          style={{
+            backgroundColor: "#000000",
+            borderColor: "rgba(255, 255, 255, 0.1)",
+            margin: 0,
+            padding: "1.5rem 1.5rem",
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="sm" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ color: '#A1A1A5' }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  style={{ color: "#A1A1A5" }}
+                >
                   <Menu className="h-5 w-5" />
                 </Button>
               </motion.div>
 
               {/* Search */}
-              <motion.div className="relative" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4" style={{ color: '#6D6D70' }} />
+              <motion.div
+                className="relative"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+              >
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
+                  style={{ color: "#6D6D70" }}
+                />
                 <Input
                   placeholder="Search workflows, integrations..."
                   className="pl-10 w-80 border-0"
-                  style={{ backgroundColor: '#0E0E10', color: '#EAEAEA' }}
+                  style={{ backgroundColor: "#0E0E10", color: "#EAEAEA" }}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </motion.div>
             </div>
 
-            {/* User Profile */}
+            {/* User */}
             <div className="flex items-center space-x-4">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="sm" style={{ color: '#A1A1A5' }}>
+                <Button variant="ghost" size="sm" style={{ color: "#A1A1A5" }}>
                   <Bell className="h-5 w-5" />
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="ghost" size="sm" style={{ color: '#A1A1A5' }}>
+                <Button variant="ghost" size="sm" style={{ color: "#A1A1A5" }}>
                   <HelpCircle className="h-5 w-5" />
                 </Button>
               </motion.div>
-              <motion.div className="flex items-center space-x-2 cursor-pointer" whileHover={{ scale: 1.02 }}
-                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3, duration: 0.3 }}
+              <motion.div
+                className="flex items-center space-x-2 cursor-pointer"
+                whileHover={{ scale: 1.02 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3, duration: 0.3 }}
               >
                 <Avatar>
                   <AvatarImage src="/placeholder-avatar.jpg" />
                   <AvatarFallback>SC</AvatarFallback>
                 </Avatar>
                 <div className="hidden md:block">
-                  <div className="text-sm font-medium" style={{ color: '#EAEAEA' }}>Sarah Chen</div>
-                  <div className="text-xs" style={{ color: '#6D6D70' }}>Admin</div>
+                  <div className="text-sm font-medium" style={{ color: "#EAEAEA" }}>
+                    Sarah Chen
+                  </div>
+                  <div className="text-xs" style={{ color: "#6D6D70" }}>
+                    Admin
+                  </div>
                 </div>
-                <ChevronDown className="h-4 w-4" style={{ color: '#6D6D70' }} />
+                <ChevronDown className="h-4 w-4" style={{ color: "#6D6D70" }} />
               </motion.div>
             </div>
           </div>
         </div>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-6" style={{ backgroundColor: '#000000' }}>
-          <AnimatePresence mode="wait">
-            {renderCurrentPage()}
-          </AnimatePresence>
+        <main className="flex-1 overflow-auto p-6" style={{ backgroundColor: "#000000" }}>
+          <AnimatePresence mode="wait">{renderCurrentPage()}</AnimatePresence>
         </main>
       </div>
     </div>
