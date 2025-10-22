@@ -18,10 +18,9 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 interface SignUpPageProps {
   onBack: () => void;
   onSignUpComplete: () => void;
-  onGoToLogin?: () => void; // new prop to navigate to login page
 }
 
-export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete, onGoToLogin }) => {
+export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -35,9 +34,6 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
-
-  // NEW: success modal state
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
@@ -100,28 +96,13 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
       // 4) Send verification (optional but recommended)
       try { await sendEmailVerification(cred.user); } catch {}
 
-      // KEEP msg for UI (optional), but DO NOT auto-navigate to dashboard
       setMsg('Account created. Please check your email to verify your address.');
-
-      // SHOW success modal — user will click Close to go to Login
-      setSuccessModalOpen(true);
-
-      // DO NOT call onSignUpComplete() here (user wants popup → close → go to login)
+      // 5) Hand off to parent (navigate, etc.)
+      onSignUpComplete();
     } catch (e: any) {
       setErr(friendlyError(e));
     } finally {
       setLoading(false);
-    }
-  };
-
-  // When user closes modal we navigate to login (if prop provided)
-  const handleCloseSuccessModal = () => {
-    setSuccessModalOpen(false);
-    if (onGoToLogin) {
-      onGoToLogin();
-    } else {
-      // fallback: call onSignUpComplete if login redirect not provided
-      onSignUpComplete();
     }
   };
 
@@ -164,7 +145,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
           <div className="space-y-6">
             <div className="flex items-start space-x-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#1D0210' }}>
-                <Sparkles className="h-4 w-4" style={{ color: '#WHITE' }} />
+                <Sparkles className="h-4 w-4" style={{ color: '#FFFFFF' }} />
               </div>
               <div className="text-left">
                 <h3 className="font-medium" style={{ color: '#EAEAEA' }}>Intelligent Automation</h3>
@@ -406,7 +387,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
                     checked={formData.agreeToTerms}
                     onCheckedChange={(checked) => handleInputChange('agreeToTerms', checked as boolean)}
                     className="mt-1"
-                    style={{ borderColor: '#008080' }}
+                    style={{ borderColor: 'rgba(29, 2, 16, 0.5)' }}
                   />
                   <label
                     htmlFor="terms"
@@ -414,11 +395,11 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
                     style={{ color: '#A1A1A5' }}
                   >
                     I agree to the{' '}
-                    <a href="#" className="hover:underline" style={{ color: '#008080' }}>
+                    <a href="#" className="hover:underline" style={{ color: '#1D0210' }}>
                       Terms of Service
                     </a>{' '}
                     and{' '}
-                    <a href="#" className="hover:underline" style={{ color: '#008080' }}>
+                    <a href="#" className="hover:underline" style={{ color: '#1D0210' }}>
                       Privacy Policy
                     </a>
                   </label>
@@ -441,43 +422,22 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
               <div className="text-center pt-4">
                 <p className="text-sm" style={{ color: '#A1A1A5' }}>
                   Already have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => { if (onGoToLogin) onGoToLogin(); else onBack(); }}
+                  <Button
+                    variant="ghost"
+                    onClick={onBack}
                     className="hover:bg-transparent p-0 h-auto font-medium transition-colors"
-                    style={{ color: '#008080' }}
+                    style={{ color: '#1D0210' }}
                     onMouseEnter={(e: any) => e.target.style.color = 'rgba(29, 2, 16, 0.8)'}
-                    onMouseLeave={(e: any) => e.target.style.color = '#008080'}
+                    onMouseLeave={(e: any) => e.target.style.color = '#1D0210'}
                   >
                     Login here
-                  </button>
+                  </Button>
                 </p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-
-      {/* Success Modal (P2) */}
-      {successModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => { /* clicking overlay won't auto-close - force use Close button */ }}
-          />
-          <div className="relative bg-[#141419] rounded-lg shadow-2xl p-6 w-full max-w-sm z-60" style={{ border: '1px solid rgba(161,161,165,0.2)' }}>
-            <h3 className="text-lg font-semibold mb-2" style={{ color: '#EAEAEA' }}>Account Created!</h3>
-            <p className="text-sm mb-4" style={{ color: '#A1A1A5' }}>
-              Your account has been created successfully. Please check your email to verify your address if you haven't already.
-            </p>
-            <div className="flex justify-end">
-              <Button onClick={handleCloseSuccessModal} className="px-4 py-2">
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
