@@ -36,13 +36,11 @@ import { Integrations } from "./components/pages/Integrations";
 import { SettingsPage } from "./components/pages/SettingsPage";
 
 // ⬅️ NEW: import your reset page (props described below)
-import ResetPasswordPage from "./components/pages/ResetPasswordPage";
 
 export default function App() {
   // Start with main page instead of dashboard
   const [currentPage, setCurrentPage] = useState<
-    | "main" | "signup" | "login" | "reset-password"
-    | "dashboard" | "workflows" | "builder" | "collaborate"
+    | "main" | "signup" | "login" | "dashboard" | "workflows" | "builder" | "collaborate"
     | "analytics" | "integrations" | "settings"
   >("main");
   const [previousPage, setPreviousPage] = useState("main");
