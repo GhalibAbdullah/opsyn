@@ -6,6 +6,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+// Removed react-router usage here because App.tsx controls navigation
 import opsynLogo from 'figma:asset/c0beb7938dec93ac35f48599799e2f4c1c8641af.png';
 
 import { auth } from '../../lib/firebase';
@@ -22,19 +23,22 @@ interface LoginPageProps {
   onBack: () => void;
   onLoginSuccess?: LoginDoneCb;
   onLoginComplete?: LoginDoneCb;
+  onForgotPassword?: (email: string) => void;
 }
 
 export default function LoginPage({
   onBack,
   onLoginSuccess,
   onLoginComplete,
+  onForgotPassword,
 }: LoginPageProps) {
   const onDone: LoginDoneCb = onLoginSuccess ?? onLoginComplete ?? (() => {});
+  // removed useNavigate from here; parent App.tsx handles navigation
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<false | 'email' | 'google' | 'github'>(false);
   const [err, setErr] = useState<string | null>(null);
 
   function friendlyError(code?: string, fallback?: string) {
@@ -46,6 +50,7 @@ export default function LoginPage({
       'auth/network-request-failed': 'Network error. Check your connection.',
       'auth/popup-closed-by-user': 'Sign-in was cancelled.',
       'auth/cancelled-popup-request': 'Popup cancelled. Try again.',
+      'auth/invalid-credential': 'Incorrect email or password.',
       'auth/account-exists-with-different-credential':
         'This email is already linked to another sign-in method.',
     };
@@ -54,8 +59,9 @@ export default function LoginPage({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLoading) return;
     setErr(null);
-    setIsLoading(true);
+    setIsLoading('email');
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       onDone();
@@ -67,8 +73,9 @@ export default function LoginPage({
   };
 
   const loginWithGoogle = async () => {
+    if (isLoading) return;
     setErr(null);
-    setIsLoading(true);
+    setIsLoading('google');
     try {
       await signInWithPopup(auth, new GoogleAuthProvider());
       onDone();
@@ -80,8 +87,9 @@ export default function LoginPage({
   };
 
   const loginWithGithub = async () => {
+    if (isLoading) return;
     setErr(null);
-    setIsLoading(true);
+    setIsLoading('github');
     try {
       await signInWithPopup(auth, new GithubAuthProvider());
       onDone();
@@ -91,6 +99,9 @@ export default function LoginPage({
       setIsLoading(false);
     }
   };
+
+  const emailValid = email.includes('@');
+  const canSubmit = emailValid && password.length >= 6 && !isLoading;
 
   return (
     <div
@@ -200,7 +211,7 @@ export default function LoginPage({
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -214,7 +225,11 @@ export default function LoginPage({
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5" style={{ color: '#6D6D70' }} />
                   <Input
                     id="email"
+                    name="email"
                     type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    autoFocus
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -241,10 +256,12 @@ export default function LoginPage({
                   <Label htmlFor="password" style={{ color: '#EAEAEA' }}>
                     Password
                   </Label>
+                  {/* Forgot password → route */}
                   <button
                     type="button"
-                    className="text-sm transition-colors"
+                    className="text-sm transition-colors underline underline-offset-4"
                     style={{ color: '#9B4A4A' }}
+                    onClick={() => onForgotPassword?.(email)}
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#EAEAEA')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#9B4A4A')}
                   >
@@ -258,10 +275,12 @@ export default function LoginPage({
                   style={{ backgroundColor: '#0E0E10', borderColor: 'rgba(161, 161, 165, 0.3)' }}
                 >
                   <Lock className="h-5 w-5 mr-2 shrink-0" style={{ color: '#6D6D70' }} />
-                
+
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -278,10 +297,11 @@ export default function LoginPage({
                     }}
                     required
                   />
-                
+
                   <button
                     type="button"
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-pressed={showPassword}
                     onClick={() => setShowPassword(!showPassword)}
                     className="ml-2 p-1 rounded-md"
                     style={{ color: '#6D6D70' }}
@@ -291,7 +311,6 @@ export default function LoginPage({
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
-
               </motion.div>
 
               <motion.div
@@ -301,13 +320,14 @@ export default function LoginPage({
               >
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={!canSubmit}
+                  aria-busy={isLoading === 'email'}
                   className="w-full py-3 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
                   style={{ backgroundColor: '#1D0210' }}
                   onMouseEnter={(e) => !isLoading && (e.currentTarget.style.backgroundColor = '#160008')}
                   onMouseLeave={(e) => !isLoading && (e.currentTarget.style.backgroundColor = '#1D0210')}
                 >
-                  {isLoading ? (
+                  {isLoading === 'email' ? (
                     <div className="flex items-center justify-center space-x-2">
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       <span>Signing in...</span>
@@ -346,6 +366,8 @@ export default function LoginPage({
               <Button
                 type="button"
                 variant="outline"
+                disabled={!!isLoading}
+                aria-busy={isLoading === 'google'}
                 className="w-full py-2 border transition-all duration-200"
                 style={{
                   backgroundColor: 'transparent',
@@ -354,10 +376,12 @@ export default function LoginPage({
                 }}
                 onClick={loginWithGoogle}
                 onMouseEnter={(e) => {
+                  if (isLoading) return;
                   e.currentTarget.style.backgroundColor = 'rgba(161, 161, 165, 0.1)';
                   e.currentTarget.style.borderColor = 'rgba(155, 74, 74, 0.6)';
                 }}
                 onMouseLeave={(e) => {
+                  if (isLoading) return;
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.borderColor = 'rgba(161, 161, 165, 0.3)';
                 }}
@@ -375,6 +399,8 @@ export default function LoginPage({
               <Button
                 type="button"
                 variant="outline"
+                disabled={!!isLoading}
+                aria-busy={isLoading === 'github'}
                 className="w-full py-2 border transition-all duration-200"
                 style={{
                   backgroundColor: 'transparent',
@@ -383,10 +409,12 @@ export default function LoginPage({
                 }}
                 onClick={loginWithGithub}
                 onMouseEnter={(e) => {
+                  if (isLoading) return;
                   e.currentTarget.style.backgroundColor = 'rgba(161, 161, 165, 0.1)';
                   e.currentTarget.style.borderColor = 'rgba(155, 74, 74, 0.6)';
                 }}
                 onMouseLeave={(e) => {
+                  if (isLoading) return;
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.borderColor = 'rgba(161, 161, 165, 0.3)';
                 }}
