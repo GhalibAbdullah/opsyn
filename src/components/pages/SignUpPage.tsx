@@ -395,11 +395,11 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onBack, onSignUpComplete
                     style={{ color: '#A1A1A5' }}
                   >
                     I agree to the{' '}
-                    <a href="#" className="hover:underline" style={{ color: '#1D0210' }}>
+                    <a href="#" className="hover:underline" style={{ color: '#008080' }}>
                       Terms of Service
                     </a>{' '}
                     and{' '}
-                    <a href="#" className="hover:underline" style={{ color: '#1D0210' }}>
+                    <a href="#" className="hover:underline" style={{ color: '#008080' }}>
                       Privacy Policy
                     </a>
                   </label>
