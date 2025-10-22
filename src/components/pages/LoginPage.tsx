@@ -268,12 +268,13 @@ export default function LoginPage({
                     type="button"
                     className="text-sm transition-colors underline underline-offset-4"
                     style={{ color: '#9B4A4A' }}
-                    onClick={() => onForgotPassword?.(email)}
+                    onClick={() => onForgotPassword?.(email)}   // ✅ correct handler
                     onMouseEnter={(e) => (e.currentTarget.style.color = '#EAEAEA')}
                     onMouseLeave={(e) => (e.currentTarget.style.color = '#9B4A4A')}
                   >
                     Forgot password?
                   </button>
+
                 </div>
 
                 {/* Password field (no overlap, flex layout) */}
